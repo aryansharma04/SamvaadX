@@ -8,7 +8,13 @@ import { FaRegBookmark } from "react-icons/fa";
 import { FiUser } from "react-icons/fi"; 
 import FeedCard from "@/components/FeedCard";
 import { Inter, Geist, Geist_Mono,Quicksand} from "next/font/google";
-import React from "react";
+import React, { useCallback } from "react";
+import {CredentialResponse, GoogleLogin} from "@react-oauth/google"
+import toast from "react-hot-toast";
+import { verifyUserGoogleTokenQuery } from "@/graphql/query/user";
+import { graphqlClient } from "@/clients/api";
+
+
 
 const geistSans = Geist({
   variable: "--font-geist-sans",
@@ -60,6 +66,23 @@ const sidebarMenuItems: TwitterSidebarButton[] = [
 
 
 export default function Home() {
+  const handleLoginWithGoogle = useCallback(async (cred: CredentialResponse)=> {
+    const googleToken = cred.credential;
+    if(!googleToken) return toast.error(`Google token not found`); 
+
+    const { verifyGoogleToken } = await graphqlClient.request(verifyUserGoogleTokenQuery,{token: googleToken});
+    //const {} = await graphqLClient.request(verifyUserGoogleTokenQuery)
+
+    toast.success('Verified Success');
+    console.log(verifyGoogleToken);
+
+    if(verifyGoogleToken)window.localStorage.setItem("__SamVaad_token", verifyGoogleToken);
+
+  }, 
+  
+  
+  [])
+
   return (
     <div className={inter.className}> 
       <div className="grid grid-cols-12 h-screen w-screen px-56">
@@ -92,7 +115,13 @@ export default function Home() {
         <FeedCard/>
         
       </div>
-      <div className="col-span-3"></div>
+      <div className="col-span-3 p-5">
+        <div className=" bg-slate-300 rounded-lg h-30 w-90 p-5">
+          <h1 className="my-2 text-2xl">New to SamVaad?</h1>
+        <GoogleLogin onSuccess={handleLoginWithGoogle}/>
+
+        </div>
+      </div>
     </div>
     </div>
   );
