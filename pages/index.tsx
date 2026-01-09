@@ -13,6 +13,8 @@ import {CredentialResponse, GoogleLogin} from "@react-oauth/google"
 import toast from "react-hot-toast";
 import { verifyUserGoogleTokenQuery } from "@/graphql/query/user";
 import { graphqlClient } from "@/clients/api";
+import {useCurrentUser} from "../hooks/user"
+import { useQueryClient } from "@tanstack/react-query";
 
 
 
@@ -66,27 +68,55 @@ const sidebarMenuItems: TwitterSidebarButton[] = [
 
 
 export default function Home() {
-  const handleLoginWithGoogle = useCallback(async (cred: CredentialResponse)=> {
+  const queryClient = useQueryClient();
+  const {user} = useCurrentUser();
+  console.log(user);
+  // const handleLoginWithGoogle = useCallback(async (cred: CredentialResponse)=> {
+    // const googleToken = cred.credential;
+    // if(!googleToken) return toast.error(`Google token not found`); 
+
+    // const { verifyGoogleToken } = await graphqlClient.request(verifyUserGoogleTokenQuery,{token: googleToken});
+    // //const {} = await graphqLClient.request(verifyUserGoogleTokenQuery)
+
+    // toast.success('Verified Success');
+    // console.log(verifyGoogleToken);
+
+    // if(verifyGoogleToken)window.localStorage.setItem("__SamVaad_token", verifyGoogleToken);
+    
+    
+  // }, 
+  
+  // [])
+
+  const handleLoginWithGoogle = useCallback(
+  async (cred: CredentialResponse) => {
     const googleToken = cred.credential;
-    if(!googleToken) return toast.error(`Google token not found`); 
+    if (!googleToken) return toast.error("Google token not found");
 
-    const { verifyGoogleToken } = await graphqlClient.request(verifyUserGoogleTokenQuery,{token: googleToken});
-    //const {} = await graphqLClient.request(verifyUserGoogleTokenQuery)
+    const { verifyGoogleToken } =
+      await graphqlClient.request(verifyUserGoogleTokenQuery, {
+        token: googleToken,
+      });
 
-    toast.success('Verified Success');
-    console.log(verifyGoogleToken);
+    if (verifyGoogleToken) {
+      window.localStorage.setItem("__SamVaad_token", verifyGoogleToken);
 
-    if(verifyGoogleToken)window.localStorage.setItem("__SamVaad_token", verifyGoogleToken);
+      // THIS IS THE MISSING PIECE
+      await queryClient.invalidateQueries({
+        queryKey: ["current-user"],    //automatically makes a server request for me
+      });
 
-  }, 
-  
-  
-  [])
+      toast.success("Verified Success");
+    }
+  },
+  [queryClient]
+);
+
 
   return (
     <div className={inter.className}> 
       <div className="grid grid-cols-12 h-screen w-screen px-56">
-      <div className="col-span-3 ml-10 pt-1">
+      <div className="col-span-3 ml-10 pt-1 relative">
         <div className="text-2xl h-fit w-fit hover:bg-gray-300 rounded-full p-4 cursor-pointer transition-all" >
         <FaTwitter  />
         </div>
@@ -103,7 +133,23 @@ export default function Home() {
           <button className="bg-[#1d9bf0] font-semibold text-lg  py-2 px-4 rounded-full w-full mt-4">Tweet</button>
 
           </div>
+          
         </div>
+        {user && (<div className="absolute bottom-4 flex gap-2 items-center px-3 py-2 rounded-full bg-slate-300">
+          {user && user.profileImageURL && 
+          (<Image className="rounded-full"
+          src={user?.profileImageURL} alt="user-image" height={40} width={40} />)}
+
+        <div>
+        <h3 className="text-xl">
+           {`${user?.firstName} ${user?.lastName}`}
+
+        </h3>
+       
+
+        </div>
+
+        </div>)}
       </div>
       <div className="col-span-5 border-r-[1px] border-l-[1px] h-screen overflow-y-auto no-scrollbar border-gray-400">
         <FeedCard/>
@@ -116,11 +162,11 @@ export default function Home() {
         
       </div>
       <div className="col-span-3 p-5">
-        <div className=" bg-slate-300 rounded-lg h-30 w-90 p-5">
+        {!user && <div className=" bg-slate-300 rounded-lg h-30 w-90 p-5">
           <h1 className="my-2 text-2xl">New to SamVaad?</h1>
         <GoogleLogin onSuccess={handleLoginWithGoogle}/>
 
-        </div>
+        </div>}
       </div>
     </div>
     </div>

@@ -1,8 +1,30 @@
 import { GraphQLClient } from "graphql-request";
-const isClient = typeof window !== 'undefined'; //it will check if it server side rended page.If it is server side,it will be false
+const isClient = typeof window === "undefined"; //it will check if it server side rended page.If it is server side,it will be false
 
-export const graphqlClient = new GraphQLClient("http://localhost:8000/graphql", {
-    headers: () => ({
-        Authorization: isClient? `Bearer ${window.localStorage.getItem("__SamVaad_token")}`: "",
-    }),//check if it is client,then only send the token else dont sent it
-});
+// export const graphqlClient = new GraphQLClient("http://localhost:8000/graphql", {
+//     headers: () => ({
+        
+//         Authorization: isClient? `Bearer ${window.localStorage.getItem("__SamVaad_token")}`: "",
+//     }),//check if it is client,then only send the token else dont sent it
+// });
+
+export const graphqlClient = new GraphQLClient(
+  "http://localhost:8000/graphql",
+  {
+    headers: () => {
+      const headers: Record<string, string> = {};
+
+      //  Client-side only
+      if (typeof window !== "undefined") {
+        const token = window.localStorage.getItem("__SamVaad_token");
+        if (token) {
+          headers.Authorization = `Bearer ${token}`;
+        }
+      }
+
+      return headers;
+    },
+  }
+);
+
+
